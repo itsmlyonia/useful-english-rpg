@@ -1,0 +1,224 @@
+#root {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+.game-container {
+  width: 100%;
+  max-width: 480px;
+  height: 100%;
+  max-height: 900px;
+  background-color: #242424;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+/* Header / Stats */
+.header {
+  padding: 1rem;
+  background: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #444;
+}
+
+.stat-box {
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.hp-bar-container {
+  width: 100px;
+  height: 10px;
+  background: #555;
+  margin-top: 5px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.hp-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+/* Battle Area */
+.battle-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: radial-gradient(circle at center, #2a2a2a 0%, #1a1a1a 100%);
+}
+
+.monster {
+  font-size: 8rem;
+  filter: drop-shadow(0 0 10px rgba(255, 50, 50, 0.5));
+  transition: transform 0.2s;
+  animation: float 3s ease-in-out infinite;
+  cursor: pointer;
+}
+
+.monster.hit {
+  animation: shake 0.5s;
+  color: #ff5555;
+}
+
+.damage-text {
+  position: absolute;
+  top: 40%;
+  font-size: 3rem;
+  font-weight: bold;
+  text-shadow: 2px 2px 0 #000;
+  animation: popUp 1s forwards;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.damage-text.damage {
+  color: #ffcc00;
+}
+
+.damage-text.heal {
+  color: #00ff88;
+}
+
+.damage-text.stun {
+  color: #88ccff;
+}
+
+.log-entry.heal { color: #00ff88; font-weight: bold; }
+.log-entry.stun { color: #88ccff; font-weight: bold; }
+
+.monster.stunned {
+  animation: dizzy 1s infinite linear;
+}
+
+@keyframes dizzy {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Controls */
+.controls {
+  padding: 1.5rem;
+  background: #2a2a2a;
+  border-top: 2px solid #444;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.word-input {
+  width: 100%;
+  padding: 15px;
+  font-size: 1.2rem;
+  border: 2px solid #555;
+  border-radius: 12px;
+  background: #1a1a1a;
+  color: white;
+  outline: none;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.word-input:focus {
+  border-color: #646cff;
+}
+
+.word-input.error {
+  border-color: #ff4444;
+  animation: shake 0.3s;
+}
+
+.attack-btn {
+  width: 100%;
+  padding: 15px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #646cff 0%, #535bf2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.1s, filter 0.2s;
+}
+
+.attack-btn:active {
+  transform: scale(0.98);
+}
+
+.attack-btn:disabled {
+  background: #444;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Log */
+.log {
+  height: 80px;
+  padding: 0.5rem 1rem;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  color: #ccc;
+  border-top: 1px solid #333;
+  background: #222;
+}
+
+.log-entry {
+  margin-bottom: 4px;
+}
+
+.log-entry.player { color: #88ccff; }
+.log-entry.enemy { color: #ff8888; }
+.log-entry.system { color: #ffff88; font-style: italic; }
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes shake {
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+@keyframes popUp {
+  0% { opacity: 0; transform: translateY(0) scale(0.5); }
+  50% { opacity: 1; transform: translateY(-50px) scale(1.2); }
+  100% { opacity: 0; transform: translateY(-100px) scale(1); }
+}
