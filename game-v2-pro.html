@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Useful English RPG v2 PRO</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #242424;
+            --text-color: #ffffff;
+            --accent-color: #646cff;
+            --hp-green: #4caf50;
+            --hp-red: #ff5555;
+            --stun-blue: #88ccff;
+            --heal-green: #00ff88;
+            --gold: #ffcc00;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%; max-width: 480px; height: 100%; max-height: 900px;
+            background-color: var(--panel-bg); display: flex; flex-direction: column;
+            position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .header { padding: 1rem; background: #333; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #444; }
+        .stat-box { text-align: center; }
+        .stat-label { font-size: 0.8rem; color: #aaa; text-transform: uppercase; }
+        .stat-value { font-size: 1.2rem; font-weight: bold; }
+        .hp-bar-container { width: 100px; height: 10px; background: #555; margin-top: 5px; border-radius: 5px; overflow: hidden; }
+        .hp-bar-fill { height: 100%; width: 100%; transition: width 0.3s ease, background-color 0.3s ease; }
+
+        .battle-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: radial-gradient(circle at center, #2a2a2a 0%, #1a1a1a 100%); }
+        .monster { font-size: 8rem; filter: drop-shadow(0 0 10px rgba(255, 50, 50, 0.5)); transition: transform 0.2s; animation: float 3s ease-in-out infinite; }
+        .monster.hit { animation: shake 0.5s; color: var(--hp-red); }
+        .monster.stunned { animation: dizzy 1s infinite linear; }
+
+        .damage-text { position: absolute; top: 40%; font-size: 3rem; font-weight: bold; text-shadow: 2px 2px 0 #000; animation: popUp 1s forwards; pointer-events: none; z-index: 10; }
+        .damage-text.damage { color: var(--gold); }
+        .damage-text.heal { color: var(--heal-green); }
+        .damage-text.stun { color: var(--stun-blue); }
+
+        .hint-btn { position: absolute; top: 10px; right: 10px; background: var(--gold); color: #000; padding: 8px 12px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; z-index: 20; animation: pulse 1.5s infinite; display: none; }
+        .hint-display { position: absolute; top: 55px; right: 10px; background: rgba(0,0,0,0.8); padding: 5px 10px; border-radius: 5px; font-size: 0.9rem; color: var(--gold); border: 1px solid var(--gold); z-index: 20; display: none; }
+
+        .log { height: 120px; padding: 0.5rem 1rem; overflow-y: auto; font-size: 0.9rem; color: #ccc; border-top: 1px solid #333; background: #222; }
+        .log-entry { margin-bottom: 4px; }
+        .log-entry.player { color: #88ccff; }
+        .log-entry.enemy { color: #ff8888; }
+        .log-entry.system { color: #ffff88; font-style: italic; }
+        .log-entry.heal { color: var(--heal-green); font-weight: bold; }
+        .log-entry.stun { color: var(--stun-blue); font-weight: bold; }
+
+        .controls { padding: 1.5rem; background: #2a2a2a; border-top: 2px solid #444; display: flex; flex-direction: column; gap: 1rem; }
+        .word-input { width: 100%; padding: 15px; font-size: 1.2rem; border: 2px solid #555; border-radius: 12px; background: #1a1a1a; color: white; outline: none; text-align: center; }
+        .word-input.error { border-color: var(--hp-red); animation: shake 0.3s; }
+        .attack-btn { width: 100%; padding: 15px; font-size: 1.2rem; font-weight: bold; background: linear-gradient(135deg, #646cff 0%, #535bf2 100%); color: white; border: none; border-radius: 12px; cursor: pointer; }
+        .attack-btn:disabled { background: #444; opacity: 0.7; }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+        @keyframes dizzy { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes popUp { 0% { opacity: 0; transform: translateY(0) scale(0.5); } 50% { opacity: 1; transform: translateY(-50px) scale(1.2); } 100% { opacity: 0; transform: translateY(-100px) scale(1); } }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        
+        #overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div class="header">
+            <div class="stat-box">
+                <div class="stat-label">Player</div>
+                <div class="hp-bar-container"><div id="player-hp-bar" class="hp-bar-fill" style="background-color: var(--hp-green);"></div></div>
+                <div id="player-hp-text" class="stat-value">100/100</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Syntax Error</div>
+                <div class="hp-bar-container"><div id="monster-hp-bar" class="hp-bar-fill" style="background-color: var(--hp-red);"></div></div>
+                <div id="monster-hp-text" class="stat-value">1000 HP</div>
+            </div>
+        </div>
+
+        <div class="battle-area">
+            <button id="hint-btn" class="hint-btn">💡 HINT</button>
+            <div id="hint-display" class="hint-display"></div>
+            <div id="damage-popup-container"></div>
+            <div id="monster-emoji" class="monster">👾</div>
+            <div id="overlay">
+                <h1 id="status-text">VICTORY!</h1>
+                <button class="attack-btn" onclick="location.reload()" style="background: var(--hp-green); width: 200px;">PLAY AGAIN</button>
+            </div>
+        </div>
+
+        <div id="battle-log" class="log"></div>
+
+        <div class="controls">
+            <input type="text" id="word-input" class="word-input" placeholder="Type a word..." autocomplete="off">
+            <button id="attack-btn" class="attack-btn">ATTACK</button>
+        </div>
+    </div>
+
+    <script>
+        const DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
+        const HEAL_KEYWORDS = ['heal', 'cure', 'remedy', 'restore', 'recovery', 'health', 'medicine', 'nurse', 'doctor', 'treatment', 'physician', 'vitamin', 'hospital', 'tonic', 'therapy', 'aid', 'wellness'];
+        const STUN_KEYWORDS = ['stun', 'paralyze', 'shock', 'freeze', 'electric', 'immobile', 'dizzy', 'bolt', 'halt', 'numb', 'glitch', 'static', 'lightning'];
+        const HINT_POOL = {
+            attack: ['elephant', 'avalanche', 'skyscraper', 'keyboard', 'mountain', 'galaxy', 'knight', 'victory', 'champion', 'infiltrate', 'probability'],
+            heal: ['remedy', 'restore', 'vitamin', 'medicine', 'doctor', 'wellness', 'tonic'],
+            stun: ['freeze', 'static', 'lightning', 'paralyze', 'shock', 'dizzy']
+        };
+
+        let playerHP = 100;
+        let monsterHP = 1000;
+        let isPlayerTurn = true;
+        let isMonsterStunned = false;
+        let isValidating = false;
+        let wordUsage = {};
+        let idleTimer = 0;
+
+        const elements = {
+            playerHPBar: document.getElementById('player-hp-bar'),
+            playerHPText: document.getElementById('player-hp-text'),
+            monsterHPBar: document.getElementById('monster-hp-bar'),
+            monsterHPText: document.getElementById('monster-hp-text'),
+            monsterEmoji: document.getElementById('monster-emoji'),
+            wordInput: document.getElementById('word-input'),
+            attackBtn: document.getElementById('attack-btn'),
+            log: document.getElementById('battle-log'),
+            popupContainer: document.getElementById('damage-popup-container'),
+            hintBtn: document.getElementById('hint-btn'),
+            hintDisplay: document.getElementById('hint-display'),
+            overlay: document.getElementById('overlay'),
+            statusText: document.getElementById('status-text')
+        };
+
+        function addLog(text, type) {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = (type === 'player' ? '> ' : type === 'heal' ? '✨ ' : type === 'stun' ? '⚡ ' : '') + text;
+            elements.log.appendChild(entry);
+            elements.log.scrollTop = elements.log.scrollHeight;
+        }
+
+        function triggerPopup(val, type) {
+            const popup = document.createElement('div');
+            popup.className = `damage-text ${type}`;
+            popup.textContent = (type === 'heal' ? '+' : type === 'stun' ? '' : '-') + val;
+            elements.popupContainer.appendChild(popup);
+            setTimeout(() => popup.remove(), 1000);
+        }
+
+        function updateUI() {
+            elements.playerHPBar.style.width = playerHP + '%';
+            elements.playerHPText.textContent = Math.ceil(playerHP) + '/100';
+            elements.monsterHPBar.style.width = (monsterHP / 1000 * 100) + '%';
+            elements.monsterHPText.textContent = monsterHP + ' HP';
+            elements.wordInput.disabled = !isPlayerTurn || isValidating;
+            elements.attackBtn.disabled = !isPlayerTurn || isValidating;
+            elements.wordInput.placeholder = isValidating ? "Validating..." : "Type a word...";
+        }
+
+        function calculateAIDamage(word) {
+            const len = word.length;
+            const unique = new Set(word.split('')).size;
+            const rareLetters = (word.match(/[zqxjkvw]/gi) || []).length;
+            
+            if (len >= 10 || (len >= 8 && rareLetters >= 1)) {
+                // Complex
+                return Math.floor(Math.random() * 41) + 100; // 100-140
+            } else if (len >= 6 || unique >= 5) {
+                // Mid
+                return Math.floor(Math.random() * 21) + 60; // 60-80
+            } else {
+                // Simple
+                return Math.floor(Math.random() * 21) + 20; // 20-40
+            }
+        }
+
+        async function handleAttack() {
+            if (!isPlayerTurn || isValidating) return;
+            const word = elements.wordInput.value.trim().toLowerCase();
+            if (word.length < 2) return elements.wordInput.classList.add('error'), setTimeout(() => elements.wordInput.classList.remove('error'), 300);
+
+            const usage = wordUsage[word] || 0;
+            isValidating = true;
+            updateUI();
+
+            try {
+                const res = await fetch(DICTIONARY_API + word);
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                
+                const meaningsText = data[0].meanings.map(m => m.definitions.map(d => d.definition).join(' ')).join(' ').toLowerCase();
+                
+                let type = 'attack';
+                if (STUN_KEYWORDS.includes(word)) type = 'stun';
+                else if (HEAL_KEYWORDS.includes(word)) type = 'heal';
+                else if (STUN_KEYWORDS.some(k => meaningsText.includes(` ${k} `) || meaningsText.includes(`${k}.`))) type = 'stun';
+                else if (HEAL_KEYWORDS.some(k => meaningsText.includes(` ${k} `) || meaningsText.includes(`${k}.`))) type = 'heal';
+
+                const limit = type === 'attack' ? 1 : 3;
+                if (usage >= limit) {
+                    addLog(`"${word}" is exhausted! (${usage}/${limit})`, 'system');
+                    throw new Error();
+                }
+
+                let damage = 0;
+                wordUsage[word] = usage + 1;
+
+                if (type === 'stun') {
+                    isMonsterStunned = true;
+                    damage = Math.floor(Math.random() * 11) + 10; // 10-20
+                    elements.monsterEmoji.classList.add('stunned');
+                    elements.monsterEmoji.textContent = '😵‍💫';
+                    addLog(`STUNNED! "${word}" (${wordUsage[word]}/3) used!`, 'stun');
+                    triggerPopup('STUN!', 'stun');
+                } else if (type === 'heal') {
+                    damage = calculateAIDamage(word);
+                    const heal = Math.floor(damage / 2);
+                    playerHP = Math.min(100, playerHP + heal);
+                    addLog(`HEALED! "${word}" (${wordUsage[word]}/3) used! +${heal} HP`, 'heal');
+                    triggerPopup(heal, 'heal');
+                } else {
+                    damage = calculateAIDamage(word);
+                    addLog(`ATTACK! "${word}" (1/1) for ${damage} damage!`, 'player');
+                    triggerPopup(damage, 'damage');
+                }
+
+                monsterHP = Math.max(0, monsterHP - damage);
+                elements.monsterEmoji.classList.add('hit');
+                setTimeout(() => elements.monsterEmoji.classList.remove('hit'), 500);
+
+                if (monsterHP <= 0) {
+                    elements.overlay.style.display = 'flex';
+                    elements.statusText.textContent = 'VICTORY!';
+                    return;
+                }
+
+                isPlayerTurn = false;
+                elements.wordInput.value = '';
+                updateUI();
+                setTimeout(monsterTurn, 1500);
+
+            } catch (e) {
+                elements.wordInput.classList.add('error');
+                setTimeout(() => elements.wordInput.classList.remove('error'), 300);
+            } finally {
+                isValidating = false;
+                updateUI();
+            }
+        }
+
+        function monsterTurn() {
+            if (isMonsterStunned) {
+                addLog('Monster is stunned and skips its turn!', 'system');
+                isMonsterStunned = false;
+                elements.monsterEmoji.classList.remove('stunned');
+                elements.monsterEmoji.textContent = '👾';
+            } else {
+                const dmg = Math.floor(Math.random() * 15) + 5;
+                playerHP = Math.max(0, playerHP - dmg);
+                addLog(`Monster attacks for ${dmg} damage!`, 'enemy');
+                if (playerHP <= 0) {
+                    elements.overlay.style.display = 'flex';
+                    elements.statusText.textContent = 'GAME OVER';
+                    elements.statusText.style.color = 'var(--hp-red)';
+                    return;
+                }
+            }
+            isPlayerTurn = true;
+            idleTimer = 0;
+            updateUI();
+        }
+
+        setInterval(() => {
+            if (isPlayerTurn && !isValidating) {
+                idleTimer++;
+                if (idleTimer >= 8) elements.hintBtn.style.display = 'block';
+            }
+        }, 1000);
+
+        elements.wordInput.addEventListener('input', () => { idleTimer = 0; elements.hintBtn.style.display = 'none'; elements.hintDisplay.style.display = 'none'; });
+        elements.hintBtn.addEventListener('click', () => {
+            const cats = ['attack', 'heal', 'stun'];
+            const cat = cats[Math.floor(Math.random() * 3)];
+            const word = HINT_POOL[cat][Math.floor(Math.random() * HINT_POOL[cat].length)];
+            elements.hintDisplay.textContent = `Try: "${word}" (${cat})`;
+            elements.hintDisplay.style.display = 'block';
+        });
+
+        elements.wordInput.addEventListener('keydown', e => e.key === 'Enter' && handleAttack());
+        elements.attackBtn.addEventListener('click', handleAttack);
+
+        addLog('Battle Start! Words are limited resources!', 'system');
+        addLog('Attack: 1 use | Heal/Stun: 3 uses', 'system');
+        updateUI();
+    </script>
+</body>
+</html>
